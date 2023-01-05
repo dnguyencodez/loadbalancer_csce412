@@ -34,7 +34,7 @@ class Request{
     }
     
     int randomTime(){ 
-        return std::rand() % 222 + 1;;
+        return std::rand() % 500 + 2;
     }
 
 
