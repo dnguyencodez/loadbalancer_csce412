@@ -7,6 +7,7 @@
 using namespace std;
 
 class Loadbalancer {
+    int initNumServers;
     int numServers;
     int loadBal_time;
     long long int totalQueueTime;
@@ -19,12 +20,14 @@ public:
         loadBal_time = 0;
         totalQueueTime = 0;
         numServers = 0;
+        initNumServers = 0;
     }
 
     // parameterized constructor
     Loadbalancer(int numServers, int runTime) {
         totalQueueTime = 0;
         this->numServers = numServers;
+        initNumServers = numServers;
         loadBal_time = runTime;
         for (int i=0; i < numServers; i++) { // initialize web servers
             Webserver newServer;
@@ -47,16 +50,6 @@ public:
         cout << "Load balancer starting now..." << endl;
     }
 
-    bool is_overloaded(int i) {
-        if (totalQueueTime > loadBal_time - i) {
-            return true;
-        } else if (totalQueueTime <= (loadBal_time - i) / 2) {
-            return false;
-        }
-
-        return false;
-    }
-
     // bool newRequest() {
     //     // following initialize a generator to randomly assign a boolean that determines whether to send a new request or not
     //     random_device rd;
@@ -67,57 +60,55 @@ public:
     // }
 
     void addNewRequest() {
-        cout << "New request incoming..." << endl;
-        Request newRequest;
-        request_queue.push(newRequest);
-        cout << "Request added to the queue" << endl;
-        totalQueueTime += newRequest.getTime();
-        cout << "New total queue processing time: " << totalQueueTime << endl;
+        int numReqs = rand() % 10;
+        for (int i=0; i < numReqs; i++){
+            cout << "New request incoming..." << endl;
+            Request newRequest;
+            request_queue.push(newRequest);
+            cout << "Request added to the queue" << endl;
+            totalQueueTime += newRequest.getTime();
+            cout << "New total queue processing time: " << totalQueueTime << endl;
+        }
     }
 
     void distribute_requests() {
         int i=0;
-        int numServersToIterate;
+        int numServersToIterate = numServers;
         while (i < loadBal_time) {
             cout << "----------------------------------------------------------------" << endl;
             cout << "Clock cycle #" << i << ":" << endl;
             cout << "Request queue size: " << request_queue.size() << endl;
 
             // srand(time(NULL));
-            int currNumReq = rand() % 4;
-            if (currNumReq == 0) {
+            int sendRequest = rand() % 3;
+            if (sendRequest == 0) {
                 addNewRequest();
             }
 
             
             int start=0;
-            if (is_overloaded(i)) {
-                if(numServersToIterate == servers.size()){
-                    cout << "Too many requests, adding more servers" << endl;
-                    //for(int j = 0; j < servers.size(); j++){
-                        Webserver newServer;
-                        servers.push_back(newServer);
-                        numServers++;
-                        numServersToIterate = numServers;
-                    //}
-                } else {
-                    cout << "Too many requests, using all available servers" << endl;
+            
+            if(request_queue.size() > initNumServers * 20 * 0.8){
+                if(numServersToIterate == numServers){
+                    // for(int j = 0; j < numServersToIterate; j++){
+                            cout << "Creating a new server" << endl;
+                            Webserver newServer;
+                            servers.push_back(newServer);
+                            numServers++;
+                            // 
+                    // }
                     numServersToIterate = numServers;
+                }else{
+                    cout << "Adding an existing server" << endl;
+                    numServersToIterate++;
                 }
-            } else {
-                // srand(time(NULL));
-                int firstHalf = rand() % 2;
-                if (firstHalf == 1) {
-                    numServersToIterate = ceil(servers.size() / 2);
-                } else {
-                    start = ceil(servers.size() / 2);
-                    numServersToIterate = servers.size();
-                }
-
-                cout << "Low utilization of load balancer, slowing down" << endl;
+            }else {
+                cout << "removing one server" << endl;
+                numServersToIterate--;
             }
+            
 
-            for (int j=start; j < numServers; j++) {
+            for (int j=start; j < numServersToIterate; j++) {
                 int currNumAvailable = 0;
                 if (servers[j].isAvailable(i) && request_queue.size() > 0) {
                     Request reqToSend = request_queue.front();
