@@ -4,19 +4,20 @@
 
 using namespace std;
 
-class request {
+class Request {
     int IPin;
     int IPout;
     int randTime;
 
 public:
-    request() {
-        srand(time(NULL));
-        IPin = rand() % 56;
+    Request() {
         // srand(time(NULL));
-        IPout = rand() % 56;
-        srand(time(NULL));
-        randTime = rand() % 200 + 1;
+        IPin = rand() % 256;
+        // srand(time(NULL));
+        IPout = rand() % 256;
+        // srand(time(NULL));
+        randTime = rand() % 502;
+        // cout << "reqTime: " << randTime << endl;
     }
     int getIPin() {
         return IPin;
