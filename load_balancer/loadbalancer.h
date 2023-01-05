@@ -1,3 +1,14 @@
+/**
+    * @file loadbalancer.h
+    * @brief Loadbalancer class
+    * This file contains the declaration of the Loadbalancer class. The Loadbalancer class
+    simulates the functionality of a load balancer in a web server system. It contains
+    attributes for the number of web servers, the running time of the load balancer, the
+    total queue processing time, a vector of web servers, and a queue of requests. It has
+    default and parameterized constructors, and various member functions to simulate the
+    processing of requests by the load balancer.
+*/
+
 #ifndef LOADBALANCER_H
 #define LOADBALANCER_H
 #include "webserver.h"
@@ -7,11 +18,12 @@
 using namespace std;
 
 class Loadbalancer {
-    int numServers;
-    int loadBal_time;
-    long long int totalQueueTime;
-    vector<Webserver> servers;
-    queue<Request> request_queue;
+    int initNumServers; ///< initial number of web servers
+    int numServers; ///< current number of web servers
+    int loadBal_time; ///< running time of the load balancer
+    long long int totalQueueTime; ///< total queue processing time
+    vector<Webserver> servers; ///< vector of web servers
+    queue<Request> request_queue; ///< queue of requests
 
 public:
     // default constructor
@@ -19,12 +31,14 @@ public:
         loadBal_time = 0;
         totalQueueTime = 0;
         numServers = 0;
+        initNumServers = 0;
     }
 
     // parameterized constructor
     Loadbalancer(int numServers, int runTime) {
         totalQueueTime = 0;
         this->numServers = numServers;
+        initNumServers = numServers;
         loadBal_time = runTime;
         for (int i=0; i < numServers; i++) { // initialize web servers
             Webserver newServer;
@@ -36,7 +50,6 @@ public:
         for (int i=0 ; i < currNumReq; i++) {
             Request newRequest;
             totalQueueTime += newRequest.getTime();
-            // cout << totalQueueTime << endl;
             request_queue.push(newRequest);
         }
 
@@ -47,24 +60,13 @@ public:
         cout << "Load balancer starting now..." << endl;
     }
 
-    bool is_overloaded(int i) {
-        if (totalQueueTime > loadBal_time - i) {
-            return true;
-        } else if (totalQueueTime <= (loadBal_time - i) / 2) {
-            return false;
-        }
-
-        return false;
-    }
-
-    // bool newRequest() {
-    //     // following initialize a generator to randomly assign a boolean that determines whether to send a new request or not
-    //     random_device rd;
-    //     mt19937 gen(rd());
-    //     uniform_int_distribution<> dis(0, 1);
-
-    //     return dis(gen);
-    // }
+    /**
+         * @brief adds new requests to the queue
+         * 
+         * This function generates a random number of new requests and adds them to the request queue.
+         * It also updates the total queue processing time.
+         * 
+     */
 
     void addNewRequest() {
         cout << "New request incoming..." << endl;
@@ -75,56 +77,56 @@ public:
         cout << "New total queue processing time: " << totalQueueTime << endl;
     }
 
+    /**
+     * @brief distributes requests to web servers
+     * 
+     * This function simulates the distribution of requests from the request queue to the web servers.
+     * It also adds or removes web servers as needed based on the size of the request queue.
+     * 
+     */
+
     void distribute_requests() {
         int i=0;
-        int numServersToIterate;
+        int numServersToIterate = numServers;
         while (i < loadBal_time) {
             cout << "----------------------------------------------------------------" << endl;
             cout << "Clock cycle #" << i << ":" << endl;
             cout << "Request queue size: " << request_queue.size() << endl;
 
-            // srand(time(NULL));
-            int currNumReq = rand() % 4;
-            if (currNumReq == 0) {
+            int sendRequest = rand() % 4;
+            if (sendRequest == 0) {
                 addNewRequest();
             }
 
             
             int start=0;
-            if (is_overloaded(i)) {
-                if(numServersToIterate == servers.size()){
-                    cout << "Too many requests, adding more servers" << endl;
-                    //for(int j = 0; j < servers.size(); j++){
-                        Webserver newServer;
-                        servers.push_back(newServer);
-                        numServers++;
-                        numServersToIterate = numServers;
-                    //}
-                } else {
-                    cout << "Too many requests, using all available servers" << endl;
+            
+            if(request_queue.size() > initNumServers * 20 * 0.8){
+                if(numServersToIterate == numServers){
+                    cout << "Creating a new server" << endl;
+                    Webserver newServer;
+                    servers.push_back(newServer);
+                    numServers++;
+                        
                     numServersToIterate = numServers;
+                }else{
+                    cout << "Adding an existing server" << endl;
+                    numServersToIterate++;
                 }
             } else {
-                // srand(time(NULL));
-                int firstHalf = rand() % 2;
-                if (firstHalf == 1) {
-                    numServersToIterate = ceil(servers.size() / 2);
-                } else {
-                    start = ceil(servers.size() / 2);
-                    numServersToIterate = servers.size();
-                }
-
-                cout << "Low utilization of load balancer, slowing down" << endl;
+                cout << "Removing one server" << endl;
+                numServersToIterate--;
             }
+            
 
-            for (int j=start; j < numServers; j++) {
+            for (int j=start; j < numServersToIterate; j++) {
                 int currNumAvailable = 0;
                 if (servers[j].isAvailable(i) && request_queue.size() > 0) {
                     Request reqToSend = request_queue.front();
                     cout << "Web server " << j << " is available" << endl;
                     totalQueueTime -= reqToSend.getTime();
                     servers[j].doProcessing(i, reqToSend.getTime());
-                    int currReqIP = reqToSend.getIPout();
+                    string currReqIP = reqToSend.getIPout();
                     request_queue.pop();
                     cout << "Sent request " << currReqIP << " to web server " << j << endl;
                 }
@@ -134,7 +136,7 @@ public:
             i++;
         }
 
-        cout << "Load balancer finished" << endl;
+        cout << "Clock cycle complete. Load balancer finished." << endl;
     }
 };
 #endif
